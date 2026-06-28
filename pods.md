@@ -87,6 +87,49 @@ metadata:
 
 ---
 
+## 실행 중인 Pod 수정 제한
+
+요약: **이미지 교체 외엔 거의 다 안 된다고 보면 된다. 수정이 필요하면 Pod 삭제 후 재생성**해야 한다.
+
+생성된 Pod는 아래 필드만 수정 가능하다.
+
+- `spec.containers[*].image`
+- `spec.initContainers[*].image`
+- `spec.activeDeadlineSeconds`
+- `spec.tolerations`
+
+환경변수, 서비스 어카운트, 리소스 limits 등은 **수정 불가**.
+
+### 우회 방법 1: kubectl edit 후 임시 파일 사용
+
+```bash
+kubectl edit pod webapp
+# 수정 시도 → 저장 거부 → 변경사항이 /tmp/kubectl-edit-xxxx.yaml에 저장됨
+
+kubectl delete pod webapp
+kubectl create -f /tmp/kubectl-edit-xxxx.yaml
+```
+
+### 우회 방법 2: YAML 추출 후 재생성
+
+```bash
+kubectl get pod webapp -o yaml > my-new-pod.yaml
+vi my-new-pod.yaml          # 수정
+kubectl delete pod webapp
+kubectl create -f my-new-pod.yaml
+```
+
+### Deployment의 경우
+
+Deployment는 Pod template의 **모든 필드 수정 가능**.  
+변경 시 자동으로 기존 Pod를 삭제하고 새 Pod를 생성한다.
+
+```bash
+kubectl edit deployment my-deployment
+```
+
+---
+
 ## 명령어
 
 ```bash
