@@ -127,3 +127,65 @@ spec:
     limits.cpu: "10"
     limits.memory: 10Gi
 ```
+
+---
+
+## In-Place Pod 리소스 조정 (alpha, v1.27+)
+
+기본 동작은 리소스 변경 시 **Pod 삭제 후 재생성**이다. 이는 Stateful 워크로드에 특히 부담이 된다.
+
+`InPlacePodVerticalScaling` 피처 게이트를 활성화하면 Pod를 재시작하지 않고 리소스를 조정할 수 있다.
+
+> **현재 상태**: v1.27 alpha 도입 → v1.33 기준 아직 alpha. 기본 비활성화, 향후 beta/stable로 전환 예정.
+
+### 피처 게이트 활성화 방법
+
+apiserver와 kubelet **둘 다** 설정이 필요하다.
+
+**kube-apiserver** (`/etc/kubernetes/manifests/kube-apiserver.yaml`):
+
+```yaml
+spec:
+  containers:
+    - command:
+        - kube-apiserver
+        - --feature-gates=InPlacePodVerticalScaling=true
+```
+
+**kubelet** (`/var/lib/kubelet/config.yaml`):
+
+```yaml
+featureGates:
+  InPlacePodVerticalScaling: true
+```
+
+```bash
+systemctl restart kubelet
+```
+
+> alpha 피처는 프로덕션 사용 비권장 — 동작이 변경되거나 제거될 수 있음.
+
+### resizePolicy 설정
+
+```yaml
+spec:
+  containers:
+    - name: app
+      image: app
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "512Mi"
+      resizePolicy:
+        - resourceName: cpu
+          restartPolicy: NotRequired   # CPU 변경 시 재시작 불필요
+        - resourceName: memory
+          restartPolicy: RestartContainer  # Memory 변경 시 재시작 필요
+```
+
+### 제한 사항
+
+- CPU, Memory만 지원 (QoS 클래스 변경 불가)
+- Init Container, Ephemeral Container는 대상 제외
+- 메모리 limit은 현재 사용량 이하로 낮출 수 없음
+- Windows Pod 미지원
