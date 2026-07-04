@@ -1,4 +1,4 @@
-# Auto Scaling 개요
+# Auto Scaling
 
 ## 스케일링 2가지 방향
 
