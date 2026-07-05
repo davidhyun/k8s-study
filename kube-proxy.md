@@ -45,3 +45,5 @@ Service IP(10.96.0.1) → Pod IP(10.32.0.15) 로 트래픽 포워딩
 |---|---|
 | **kubeadm** | **DaemonSet**으로 배포 → 모든 노드에 Pod 1개씩 자동 배치 |
 | **직접 구성** | 바이너리 다운로드 후 서비스로 실행 |
+
+> CoreDNS와의 차이: CoreDNS는 Service 이름을 ClusterIP로 해석하고, kube-proxy는 그 ClusterIP로 오는 트래픽을 실제 Pod IP로 전달한다. → 자세한 비교는 `coredns.md` 참고
