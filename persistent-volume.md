@@ -1,4 +1,4 @@
-# Persistent Volume
+# Persistent Volume & Persistent Volume Claim
 
 ## 개념
 
