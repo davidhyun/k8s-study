@@ -270,6 +270,58 @@ spec:
 
 ---
 
+## TLS / SSL 설정
+
+- 실무에서는 **cert-manager**를 사용해 인증서를 자동 발급/갱신한다.
+
+- annotation의 `cluster-issuer`를 감지해 cert-manager가 자동으로 인증서를 발급하고 `mystore-tls` Secret에 저장한다. 
+- 서브도메인은 DNS에 각각 Ingress Controller IP로 등록해야 한다.
+
+```
+cert-manager (클러스터 내 설치)
+  → Let's Encrypt에서 인증서 자동 발급
+  → 만료 전 자동 갱신
+  → Secret으로 저장 → Ingress에서 참조
+```
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-tls
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts:
+        - wear.mystore.com
+        - watch.mystore.com
+      secretName: mystore-tls    # 인증서가 저장될 Secret 이름
+  rules:
+    - host: wear.mystore.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wear-service
+                port:
+                  number: 80
+    - host: watch.mystore.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: video-service
+                port:
+                  number: 80
+```
+
+---
+
 ## Default Backend
 
 규칙에 매칭되지 않는 요청을 처리하는 서비스.  
