@@ -5,6 +5,10 @@
 클러스터 외부 트래픽을 내부 Service로 라우팅하는 **L7(HTTP/HTTPS) 로드밸런서**.  
 URL 경로/호스트명 기반 라우팅과 SSL 종료를 Kubernetes 오브젝트로 관리할 수 있다.
 
+![nodeport-service](https://velog.velcdn.com/images/hyunh317/post/5651f4dc-193e-4692-be97-755c6af2f979/image.png)
+![proxy-nodeport-service](https://velog.velcdn.com/images/hyunh317/post/e90c7541-40a6-4dbe-ac1d-2f2d37cc3965/image.png)
+![Ingress](https://velog.velcdn.com/images/hyunh317/post/bc534f6f-b2cd-4a18-a5cc-8de78934b487/image.png)
+
 ```
 외부 사용자
   → Ingress Controller (단일 진입점)
@@ -272,17 +276,43 @@ spec:
 
 ## TLS / SSL 설정
 
-- 실무에서는 **cert-manager**를 사용해 인증서를 자동 발급/갱신한다.
-
-- annotation의 `cluster-issuer`를 감지해 cert-manager가 자동으로 인증서를 발급하고 `mystore-tls` Secret에 저장한다. 
-- 서브도메인은 DNS에 각각 Ingress Controller IP로 등록해야 한다.
+실무에서는 **cert-manager**를 사용해 인증서를 자동 발급/갱신한다.
 
 ```
 cert-manager (클러스터 내 설치)
   → Let's Encrypt에서 인증서 자동 발급
-  → 만료 전 자동 갱신
+  → 만료 30일 전 자동 갱신
   → Secret으로 저장 → Ingress에서 참조
 ```
+
+> 서브도메인은 DNS에 각각 Ingress Controller IP로 등록해야 한다.
+
+### 1. cert-manager 설치
+
+```bash
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+```
+
+### 2. ClusterIssuer 생성 (Let's Encrypt 발급 주체 등록)
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: your@email.com
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+```
+
+### 3. Ingress에 TLS 적용
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -291,6 +321,7 @@ metadata:
   name: ingress-tls
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"   # HTTP → HTTPS 리다이렉트
 spec:
   tls:
     - hosts:
@@ -318,6 +349,17 @@ spec:
                 name: video-service
                 port:
                   number: 80
+```
+
+> `ssl-redirect: "true"` 설정 시 HTTP(80) 요청을 자동으로 HTTPS(443)로 리다이렉트한다.  
+> nginx Ingress Controller는 tls 섹션이 있으면 기본적으로 리다이렉트가 활성화되어 있다.
+
+### 4. 상태 확인
+
+```bash
+kubectl get certificate                  # 인증서 발급 상태
+kubectl describe certificate mystore-tls # 상세 확인 (발급 실패 시 이벤트 확인)
+kubectl get secret mystore-tls           # 저장된 Secret 확인
 ```
 
 ---
