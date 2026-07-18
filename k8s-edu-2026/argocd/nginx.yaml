@@ -4,7 +4,7 @@ metadata:
   name: nginx-deployment
   namespace: myproject
 spec:
-  replicas: 3
+  replicas: 5
   selector:
     matchLabels:
       app: nginx
@@ -31,4 +31,4 @@ spec:
   - protocol: TCP
     port: 80
     targetPort: 80
-  type: ClusterIP
+  type: NodePort
