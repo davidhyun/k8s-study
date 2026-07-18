@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps
+  namespace: argocd
+spec:
+  project: default # k8s 네임스페이스 아님. ArgoCD의 기본 프로젝트명
+  source:
+    repoURL: 'https://github.com/davidhyun/k8s-study.git' # 배포할 깃 레포지토리 URL
+    targetRevision: HEAD
+    path: 'k8s-edu-2026/argocd' # nginx.yaml 파일이 repository 의 루트에 있다면 '.' 
+  destination:
+    server: 'https://kubernetes.default.svc' # 수정 필요없음
+    namespace: myproject
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
