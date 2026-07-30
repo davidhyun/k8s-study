@@ -1,4 +1,4 @@
-# CoreDNS
+# Network - CoreDNS
 
 ## 개념
 
